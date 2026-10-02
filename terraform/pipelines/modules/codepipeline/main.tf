@@ -333,6 +333,28 @@ resource "aws_codepipeline" "pipeline" {
     }
   }
 
+  # Runtime Pentest Stage (optional): attacks the app that the Deploy stage just shipped
+  dynamic "stage" {
+    for_each = var.enable_dast ? [1] : []
+
+    content {
+      name = "RuntimePentest"
+
+      action {
+        name            = "DarkmoonRuntimePentest"
+        category        = "Test"
+        owner           = "AWS"
+        provider        = "CodeBuild"
+        version         = "1"
+        input_artifacts = ["SourceArtifact"]
+
+        configuration = {
+          ProjectName = aws_codebuild_project.dast_project[0].name
+        }
+      }
+    }
+  }
+
   trigger {
     provider_type = "CodeStarSourceConnection"
     git_configuration {
@@ -539,6 +561,47 @@ resource "aws_codebuild_project" "oss_scanning_project" {
   source {
     type      = "NO_SOURCE"
     buildspec = file("${path.module}/buildspecs/ossdepscan.yml")
+  }
+
+  artifacts {
+    type     = "S3"
+    location = var.s3_bucket_name
+  }
+}
+
+# CodeBuild for Runtime Pentest (DAST)
+resource "aws_codebuild_project" "dast_project" {
+  count = var.enable_dast ? 1 : 0
+
+  name         = "${var.repo_name}-dast-project"
+  service_role = aws_iam_role.codebuild_role.arn
+
+  environment {
+    compute_type = var.compute_type
+    image        = var.build_image
+    type         = var.environment_type
+
+    environment_variable {
+      name  = "DARKMOON_PRO_URL"
+      value = aws_ssm_parameter.darkmoon_pro_url[0].name
+      type  = "PARAMETER_STORE"
+    }
+
+    environment_variable {
+      name  = "DARKMOON_PRO_TOKEN"
+      value = aws_ssm_parameter.darkmoon_pro_token[0].name
+      type  = "PARAMETER_STORE"
+    }
+
+    environment_variable {
+      name  = "TARGET_URL"
+      value = var.dast_target_url
+    }
+  }
+
+  source {
+    type      = "NO_SOURCE"
+    buildspec = file("${path.module}/buildspecs/dastscanning.yml")
   }
 
   artifacts {

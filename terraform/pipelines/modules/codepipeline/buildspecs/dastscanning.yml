@@ -1,0 +1,38 @@
+version: 0.2
+
+# Runtime (DAST) stage: autonomous penetration test of the DEPLOYED application.
+# The Test stage covers static analysis (Snyk SAST, container SCA); this stage
+# attacks the running service on EKS and reports only what it can exploit/confirm.
+#
+# Engine: Darkmoon (open source, GPL-3.0, https://github.com/ASCIT31/Dark-Moon)
+# through its portable CI client `darkmoon-ci` (npm @darkmoon_ai/client), talking
+# to a Darkmoon Pro REST endpoint that CodeBuild can reach over the network.
+# The Darkmoon web dashboard and API are part of Darkmoon Pro.
+#
+# Required environment (wired by the codepipeline module):
+#   DARKMOON_PRO_URL    base URL of the Darkmoon Pro API
+#   DARKMOON_PRO_TOKEN  bearer token (read from SSM Parameter Store, SecureString)
+#   TARGET_URL          URL of the deployed application you are AUTHORIZED to test
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing the Darkmoon CI client..."
+      - npm install -g @darkmoon_ai/client
+  pre_build:
+    commands:
+      - echo "Checking Darkmoon Pro availability..."
+      - darkmoon-ci detect --mode pro
+  build:
+    commands:
+      - echo "Running the runtime pentest against the deployed application..."
+      # Exit code 2 means the fail-on policy tripped and fails this CodeBuild action.
+      - darkmoon-ci run --mode pro --target "$TARGET_URL" --fail-on critical,high --timeout 2400 --json
+  post_build:
+    commands:
+      - echo "Runtime pentest finished."
+
+artifacts:
+  discard-paths: no

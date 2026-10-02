@@ -59,4 +59,9 @@ module "awsome_fastapi_pipeline" {
 
   snyk_org_id = var.SNYK_ORG_ID
   snyk_token  = var.SNYK_TOKEN
+
+  enable_dast        = var.ENABLE_DAST
+  darkmoon_pro_url   = var.DARKMOON_PRO_URL
+  darkmoon_pro_token = var.DARKMOON_PRO_TOKEN
+  dast_target_url    = var.DAST_TARGET_URL
 }

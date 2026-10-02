@@ -82,3 +82,29 @@ variable "eks_cluster_arn" {
   description = "EKS cluster name"
   type        = string
 }
+
+# Runtime (DAST) stage - optional, disabled by default
+variable "enable_dast" {
+  description = "Add a runtime pentest (DAST) stage after the Deploy stage"
+  type        = bool
+  default     = false
+}
+
+variable "darkmoon_pro_url" {
+  description = "Base URL of the Darkmoon Pro API used by the runtime pentest stage"
+  type        = string
+  default     = ""
+}
+
+variable "darkmoon_pro_token" {
+  description = "Darkmoon Pro bearer token used by the runtime pentest stage"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "dast_target_url" {
+  description = "URL of the deployed application to test (only test systems you are authorized to test)"
+  type        = string
+  default     = ""
+}
